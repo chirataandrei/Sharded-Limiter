@@ -28,3 +28,15 @@ class Shard {
 		size_t size() const { return buckets_.size(); }
 };
 
+inline bool Shard::try_consume(const std::string& key, double tokens, std::chrono::steady_clock::time_point now)
+{
+	std::lock_guard<std::mutex> lock(mtx_);
+	
+	// store in the map
+	// using try_emplace for optimization
+	auto it = buckets_.try_emplace(key, default_capacity_, default_refill_rate_, now).first;
+
+	return it->second.try_consume(tokens, now);
+}
+
+inline bool
