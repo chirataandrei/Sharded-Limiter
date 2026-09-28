@@ -18,7 +18,7 @@ class TokenBucket {
 		explicit TokenBucket(double capacity, double refill_rate, std::chrono::steady_clock::time_point now) : 
 			capacity_(capacity), refill_rate_(refill_rate), tokens_(capacity), last_seen_(now) {}
 		
-		// public APIs
+		// public API
 		bool try_consume(double tokens, std::chrono::steady_clock::time_point now);
 		double available_tokens() const { return tokens_; }
 		std::chrono::steady_clock::time_point last_seen() const { return last_seen_; }

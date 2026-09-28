@@ -1,0 +1,30 @@
+#pragma once
+
+#include "token_bucket.hpp"
+#include <mutex>
+#include <unordered_map>
+#include <string>
+
+class Shard {
+	private:
+		// guards concurrent acces to buckets
+		mutable std::mutex mtx_;
+
+		// maps each key to its dedicated bucket
+		std::unordered_map<std::string, TokenBucket> buckets_;
+
+		double default_capacity_;
+		double default_refill_rate_;
+
+	public:
+		explicit Shard(double default_capacity, double default_refill_rate) :
+			default_capacity_(default_capacity), default_refill_rate_(default_refill_rate) {}
+		
+		// Thread-Safe API
+		bool try_consume(const std::string& key, double tokens, std::chrono::steady_clock::time_point now);
+		bool try_consume_custom(const std::string& key, double tokens, double capacity, double refill_rate, 
+			std::chrono::steady_clock::time_point now);
+		void cleanup_stale(std::chrono::steady_clock::duration ttl_duration, std::chrono::steady_clock::time_point now);
+		size_t size() const { return buckets_.size(); }
+};
+
