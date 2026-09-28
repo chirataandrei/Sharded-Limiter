@@ -26,5 +26,11 @@ class TokenBucket {
 
 bool TokenBucket::try_consume(double tokens, std::chrono::steady_clock::time_point now)
 {
-	
+	// update the currently available tokens
+	std::chrono::duration<double> delta = now - last_seen_;
+	double new_tokens = delta.count() * refill_rate_;
+	tokens_ = std::min(tokens_ + new_tokens, capacity_);
+
+	// verify if the tokens are sufficient
+	return tokens <= tokens_;
 }
