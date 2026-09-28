@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <algorithm>
 
 class TokenBucket {
 	private:
@@ -21,16 +22,27 @@ class TokenBucket {
 		bool try_consume(double tokens, std::chrono::steady_clock::time_point now);
 		double available_tokens() const { return tokens_; }
 		std::chrono::steady_clock::time_point last_seen() const { return last_seen_; }
-		bool is_full () const { return capacity_ == tokens_; }
+		bool is_full () const { return capacity_ <= tokens_; }
 };
 
-bool TokenBucket::try_consume(double tokens, std::chrono::steady_clock::time_point now)
+inline bool TokenBucket::try_consume(double tokens, std::chrono::steady_clock::time_point now)
 {
 	// update the currently available tokens
 	std::chrono::duration<double> delta = now - last_seen_;
-	double new_tokens = delta.count() * refill_rate_;
+	double delta_seconds = std::max(0.0, delta.count());
+	double new_tokens = delta_seconds * refill_rate_;
 	tokens_ = std::min(tokens_ + new_tokens, capacity_);
 
-	// verify if the tokens are sufficient
-	return tokens <= tokens_;
+	// update last seen
+	if (now > last_seen_) {
+		last_seen_ = now;
+	}
+	
+	// verify if we have enough tokens
+	if (tokens_ >= tokens) {
+		tokens_ -= tokens;
+		return true;
+	}
+
+	return false;
 }
