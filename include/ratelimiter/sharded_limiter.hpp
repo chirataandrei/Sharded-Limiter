@@ -17,14 +17,15 @@ class ShardedLimiter {
 		const Shard& get_shard(const std::string& key) const;
 
 	public:
-		explicit ShardedLimiter(double default_capacity, double default_refill_rate) {}
+		explicit ShardedLimiter(double default_capacity, double default_refill_rate);
 
 		// public API
-		bool try_consume(const std::string& key, double tokens = 1.0, std::chrono::steady_clock::time_point now);
+		bool try_consume(const std::string& key, double tokens = 1.0, 
+			std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now());
 		bool try_consume_custom(const std::string& key, double tokens, double capacity, double refill_rate, 
 			std::chrono::steady_clock::time_point now);
 		void cleanup_all_stale(std::chrono::steady_clock::duration ttl_duration, std::chrono::steady_clock::time_point now);
-		size_t total_size();
+		size_t total_size() const;
 
 };
 
@@ -47,30 +48,30 @@ inline const Shard& ShardedLimiter::get_shard(const std::string& key) const {
 	return *shards_[idx];
 }
 
-bool ShardedLimiter::try_consume(const std::string& key, double tokens = 1.0, std::chrono::steady_clock::time_point now)
+inline bool ShardedLimiter::try_consume(const std::string& key, double tokens, std::chrono::steady_clock::time_point now)
 {
 	Shard& curr = get_shard(key);
 	return curr.try_consume(key, tokens, now);
 }
 
-bool ShardedLimiter::try_consume_custom(const std::string& key, double tokens, double capacity, double refill_rate, 
+inline bool ShardedLimiter::try_consume_custom(const std::string& key, double tokens, double capacity, double refill_rate, 
 	std::chrono::steady_clock::time_point now)
 {
 	Shard& curr = get_shard(key);
 	return curr.try_consume_custom(key, tokens, capacity, refill_rate, now);
 }
 
-void ShardedLimiter::cleanup_all_stale(std::chrono::steady_clock::duration ttl_duration, std::chrono::steady_clock::time_point now)
+inline void ShardedLimiter::cleanup_all_stale(std::chrono::steady_clock::duration ttl_duration, std::chrono::steady_clock::time_point now)
 {
-	for (int i = 0; i < NUM_SHARDS; i++) {
+	for (size_t i = 0; i < NUM_SHARDS; i++) {
 		shards_[i]->cleanup_stale(ttl_duration, now);
 	}
 }
 
-size_t ShardedLimiter::total_size()
+inline size_t ShardedLimiter::total_size() const
 {
 	size_t curr = 0;
-	for (int i = 0; i < NUM_SHARDS; i++){
+	for (size_t i = 0; i < NUM_SHARDS; i++){
 		curr += shards_[i]->size();
 	}
 	return curr;
