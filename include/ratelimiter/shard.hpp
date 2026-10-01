@@ -4,6 +4,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <string>
+#include <functional>
 
 class Shard {
 	private:
