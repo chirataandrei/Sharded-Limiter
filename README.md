@@ -148,11 +148,51 @@ cmake --build build --target server_simulation
   `std::chrono::steady_clock` and clamps negative elapsed time to zero, so
   an out-of-order timestamp can never grant free tokens.
 
+## Benchmarks
+
+[`benchmarks/throughput_bench.cpp`](benchmarks/throughput_bench.cpp) measures
+raw per-call overhead and, more importantly, the payoff of sharding: the
+same distinct-key workload run through a single `Shard` versus the full
+`ShardedLimiter`.
+
+```sh
+cmake --build build --target throughput_bench
+./build/throughput_bench
+```
+
+Sample run (10 hardware threads):
+
+```
+Hardware concurrency: 10 threads
+
+-- Single-threaded --
+1 key, 1 thread                                           68465444 ops/s      14.6 ns/op
+10000 keys, 1 thread                                      42433235 ops/s      23.6 ns/op
+
+-- Multi-threaded (10 threads) --
+ShardedLimiter: 1 shared key (worst case)                  9808734 ops/s     101.9 ns/op
+ShardedLimiter: 10 distinct keys (best case)             207944879 ops/s       4.8 ns/op
+Single Shard (no sharding), 10 distinct keys                8719816 ops/s     114.7 ns/op
+```
+
+Two things stand out:
+
+- **A single hot key caps out around single-shard throughput** — it's
+  still bottlenecked by one mutex, which is unavoidable when every request
+  touches the same bucket.
+- **Spreading keys across shards is where the win is** — distinct keys
+  through `ShardedLimiter` ran ~24x faster here than the same workload
+  through one un-sharded `Shard`, since 10 threads land on (mostly) 10
+  different mutexes instead of fighting over one.
+
+Numbers will vary by machine; `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release`
+is recommended before benchmarking.
+
 ## Project layout
 
 ```
 include/ratelimiter/   Header-only library (TokenBucket, Shard, ShardedLimiter)
 tests/                 Unit + concurrency test suite (test_limiter.cpp)
 examples/              Runnable usage demos (server_simulation.cpp)
-benchmarks/            Reserved for throughput benchmarks (throughput_bench.cpp)
+benchmarks/            Throughput benchmarks (throughput_bench.cpp)
 ```
