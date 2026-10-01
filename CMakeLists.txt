@@ -68,3 +68,9 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/server_stub.cpp")
     add_executable(server_stub examples/server_stub.cpp)
     target_link_libraries(server_stub PRIVATE ratelimiter compiler_flags)
 endif()
+
+# 4. Simulated HTTP Server Example
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/server_simulation.cpp")
+    add_executable(server_simulation examples/server_simulation.cpp)
+    target_link_libraries(server_simulation PRIVATE ratelimiter compiler_flags)
+endif()
